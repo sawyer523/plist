@@ -22,6 +22,4 @@ jobs:
       - if: matrix.platform == 'ubuntu-latest'
         run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
-      - run: go build -v ./...
-
       - run: go test -cover -race -v ./...
