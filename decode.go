@@ -106,18 +106,22 @@ func (d *Decoder) unmarshal(pval *plistValue, v reflect.Value) error {
 
 	if v.CanInterface() && v.Type().Implements(unmarshalerType) {
 		u := v.Interface().(Unmarshaler)
-		return u.UnmarshalPlist(func(i interface{}) error {
-			return d.unmarshal(pval, reflect.ValueOf(i))
-		})
+		return u.UnmarshalPlist(
+			func(i interface{}) error {
+				return d.unmarshal(pval, reflect.ValueOf(i))
+			},
+		)
 	}
 
 	if v.CanAddr() {
 		pv := v.Addr()
 		if pv.CanInterface() && pv.Type().Implements(unmarshalerType) {
 			u := pv.Interface().(Unmarshaler)
-			return u.UnmarshalPlist(func(i interface{}) error {
-				return d.unmarshal(pval, reflect.ValueOf(i))
-			})
+			return u.UnmarshalPlist(
+				func(i interface{}) error {
+					return d.unmarshal(pval, reflect.ValueOf(i))
+				},
+			)
 		}
 
 	}
@@ -271,12 +275,14 @@ func (d *Decoder) unmarshalInteger(pval *plistValue, v reflect.Value) error {
 		// Make sure plistValue isn't negative when decoding into uint.
 		if pval.value.(signedInt).signed {
 			return UnmarshalTypeError{
-				fmt.Sprintf("%v", int64(pval.value.(signedInt).value)), v.Type()}
+				fmt.Sprintf("%v", int64(pval.value.(signedInt).value)), v.Type(),
+			}
 		}
 		v.SetUint(pval.value.(signedInt).value)
 	default:
 		return UnmarshalTypeError{
-			fmt.Sprintf("%v", pval.value.(signedInt).value), v.Type()}
+			fmt.Sprintf("%v", pval.value.(signedInt).value), v.Type(),
+		}
 	}
 	return nil
 }

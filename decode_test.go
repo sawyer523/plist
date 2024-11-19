@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os/exec"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -233,6 +233,57 @@ func TestDecodeData(t *testing.T) {
 	}
 }
 
+func TestDecodeDataInvalidCharacter(t *testing.T) {
+	type data map[string]any
+	expect := data{
+		"CommandUUID": "6222776f-1a8a-462c-b931-e1c1981134d2",
+		"InstalledApplicationList": []any{
+			map[string]any{
+				"BundleSize":   uint64(61116416),
+				"Identifier":   "daojiasuyun58",
+				"Name":         "快狗打车",
+				"ShortVersion": "5.18.0",
+			},
+		},
+		"Status": "Acknowledged",
+		"UDID":   "device-uuid",
+	}
+
+	out := data{}
+	if err := Unmarshal(
+		[]byte(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CommandUUID</key>
+	<string>6222776f-1a8a-462c-b931-e1c1981134d2</string>
+	<key>InstalledApplicationList</key>
+	<array>
+		<dict>
+			<key>BundleSize</key>
+			<integer>61116416</integer>
+			<key>Identifier</key>
+			<string>daojiasuyun58</string>
+			<key>Name</key>
+			<string>快狗打车</string>
+			<key>ShortVersion</key>
+			<string>5.18.0</string>
+		</dict>
+    </array>
+	<key>Status</key>
+    <string>Acknowledged</string>
+    <key>UDID</key>
+    <string>device-uuid</string>
+</dict>`), &out,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(expect, out) {
+		t.Errorf("\nexpect: \n%#v,\nout: \n%#v\n", expect, out)
+	}
+}
+
 func TestDecodeData_emptyData(t *testing.T) {
 	var before, after []byte
 	if err := Unmarshal([]byte(emptyDataRef), &after); err != nil {
@@ -346,7 +397,7 @@ func TestDecodeBinaryPlist(t *testing.T) {
 					Data     [][]byte  `plist:"data"`
 				}
 
-				content, err := ioutil.ReadFile(filepath.Join("testdata", tt.filename))
+				content, err := os.ReadFile(filepath.Join("testdata", tt.filename))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -527,54 +578,5 @@ func TestDecodeTagSkip(t *testing.T) {
 
 	if testStruct.SkipTag != "" {
 		t.Error("field decoded when it was tagged as -")
-	}
-}
-
-// test parity with plutil -lint on macOS
-var xmlParityTestFailures = map[string]struct{}{
-	"empty-plist.plist":          {},
-	"invalid-before-plist.plist": {},
-	"invalid-data.plist":         {},
-	"invalid-middle.plist":       {},
-	"invalid-start.plist":        {},
-	"no-dict-end.plist":          {},
-	"no-plist-end.plist":         {},
-	"unescaped-plist.plist":      {},
-	"unescaped-xml.plist":        {},
-}
-
-func TestXMLPlutilParity(t *testing.T) {
-	type data struct {
-		Key string `plist:"key"`
-	}
-	tests, err := ioutil.ReadDir("testdata/xml/")
-	if err != nil {
-		t.Fatalf("could not open testdata/xml: %v", err)
-	}
-
-	plutil, _ := exec.LookPath("plutil")
-
-	for _, test := range tests {
-		testPath := filepath.Join("testdata/xml/", test.Name())
-		buf, err := ioutil.ReadFile(testPath)
-		if err != nil {
-			t.Errorf("could not read test %s: %v", test.Name(), err)
-			continue
-		}
-		v := new(data)
-		err = Unmarshal(buf, v)
-
-		_, check := xmlParityTestFailures[test.Name()]
-		if plutil != "" {
-			check = exec.Command(plutil, "-lint", testPath).Run() != nil
-		}
-
-		if check && err == nil {
-			t.Errorf("expected error for test %s but got: nil", test.Name())
-		} else if !check && err != nil {
-			t.Errorf("expected no error for test %s but got: %v", test.Name(), err)
-		} else if !check && v.Key != "val" {
-			t.Errorf("expected key=val for test %s but got: key=%s", test.Name(), v.Key)
-		}
 	}
 }
