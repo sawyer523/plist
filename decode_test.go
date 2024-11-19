@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -522,7 +521,7 @@ func TestUnmarshaler(t *testing.T) {
 
 func TestFuzzCrashers(t *testing.T) {
 	dir := filepath.Join("testdata", "crashers")
-	testDir, err := ioutil.ReadDir(dir)
+	testDir, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("reading dir %q: %s", dir, err)
 	}
@@ -533,7 +532,7 @@ func TestFuzzCrashers(t *testing.T) {
 			tc.Name(), func(t *testing.T) {
 				t.Parallel()
 
-				crasher, err := ioutil.ReadFile(filepath.Join("testdata", "crashers", tc.Name()))
+				crasher, err := os.ReadFile(filepath.Join("testdata", "crashers", tc.Name()))
 				if err != nil {
 					t.Fatal(err)
 				}
