@@ -5,9 +5,10 @@
 package xml_test
 
 import (
-	"encoding/xml"
 	"fmt"
 	"os"
+
+	"github.com/sawyer523/plist/xml"
 )
 
 func ExampleMarshalIndent() {

@@ -5,10 +5,11 @@
 package xml_test
 
 import (
-	"encoding/xml"
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/sawyer523/plist/xml"
 )
 
 type Animal int
@@ -73,8 +74,10 @@ func Example_customMarshalXML() {
 		census[animal] += 1
 	}
 
-	fmt.Printf("Zoo Census:\n* Gophers: %d\n* Zebras:  %d\n* Unknown: %d\n",
-		census[Gopher], census[Zebra], census[Unknown])
+	fmt.Printf(
+		"Zoo Census:\n* Gophers: %d\n* Zebras:  %d\n* Unknown: %d\n",
+		census[Gopher], census[Zebra], census[Unknown],
+	)
 
 	// Output:
 	// Zoo Census:

@@ -2,12 +2,13 @@ package plist
 
 import (
 	"encoding/base64"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"math"
 	"reflect"
 	"time"
+
+	"github.com/sawyer523/plist/xml"
 )
 
 const xmlDOCTYPE = `<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">`
@@ -28,7 +29,7 @@ func (e *xmlEncoder) generateDocument(pval *plistValue) error {
 		return err
 	}
 
-	//!DOCTYPE plist
+	// !DOCTYPE plist
 	_, err = e.writer.Write([]byte(xmlDOCTYPE))
 	if err != nil {
 		return err
@@ -108,14 +109,18 @@ func (e *xmlEncoder) writeElement(name string, pval *plistValue, valFunc func(*p
 		Name: xml.Name{
 			Space: "",
 			Local: name,
-		}}
+		},
+	}
 
 	if name == "plist" {
-		startElement.Attr = []xml.Attr{{
-			Name: xml.Name{
-				Space: "",
-				Local: "version"},
-			Value: "1.0"},
+		startElement.Attr = []xml.Attr{
+			{
+				Name: xml.Name{
+					Space: "",
+					Local: "version",
+				},
+				Value: "1.0",
+			},
 		}
 	}
 

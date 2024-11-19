@@ -5,10 +5,11 @@
 package xml_test
 
 import (
-	"encoding/xml"
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/sawyer523/plist/xml"
 )
 
 type Size int
@@ -68,8 +69,10 @@ func Example_textMarshalXML() {
 		counts[size] += 1
 	}
 
-	fmt.Printf("Inventory Counts:\n* Small:        %d\n* Large:        %d\n* Unrecognized: %d\n",
-		counts[Small], counts[Large], counts[Unrecognized])
+	fmt.Printf(
+		"Inventory Counts:\n* Small:        %d\n* Large:        %d\n* Unrecognized: %d\n",
+		counts[Small], counts[Large], counts[Unrecognized],
+	)
 
 	// Output:
 	// Inventory Counts:
