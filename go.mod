@@ -1,3 +1,3 @@
 module github.com/sawyer523/plist
 
-go 1.21
+go 1.22
