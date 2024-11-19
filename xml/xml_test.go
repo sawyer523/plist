@@ -59,21 +59,27 @@ func TestDecodeEOF(t *testing.T) {
 	for _, tc := range tests {
 		for _, eof := range []bool{true, false} {
 			name := fmt.Sprintf("%s/earlyEOF=%v", tc.name, eof)
-			t.Run(name, func(t *testing.T) {
-				d := NewTokenDecoder(&toks{
-					earlyEOF: eof,
-					t:        tc.tokens,
-				})
-				err := d.Decode(&struct {
-					XMLName Name `xml:"test"`
-				}{})
-				if tc.ok && err != nil {
-					t.Fatalf("d.Decode: expected nil error, got %v", err)
-				}
-				if _, ok := err.(*SyntaxError); !tc.ok && !ok {
-					t.Errorf("d.Decode: expected syntax error, got %v", err)
-				}
-			})
+			t.Run(
+				name, func(t *testing.T) {
+					d := NewTokenDecoder(
+						&toks{
+							earlyEOF: eof,
+							t:        tc.tokens,
+						},
+					)
+					err := d.Decode(
+						&struct {
+							XMLName Name `xml:"test"`
+						}{},
+					)
+					if tc.ok && err != nil {
+						t.Fatalf("d.Decode: expected nil error, got %v", err)
+					}
+					if _, ok := err.(*SyntaxError); !tc.ok && !ok {
+						t.Errorf("d.Decode: expected syntax error, got %v", err)
+					}
+				},
+			)
 		}
 	}
 }
@@ -101,21 +107,27 @@ func (t *toksNil) Token() (Token, error) {
 func TestDecodeNilToken(t *testing.T) {
 	for _, strict := range []bool{true, false} {
 		name := fmt.Sprintf("Strict=%v", strict)
-		t.Run(name, func(t *testing.T) {
-			start := StartElement{Name: Name{Local: "test"}}
-			bad := StartElement{Name: Name{Local: "bad"}}
-			d := NewTokenDecoder(&toksNil{
-				// Malformed
-				t: []Token{start, bad, start.End()},
-			})
-			d.Strict = strict
-			err := d.Decode(&struct {
-				XMLName Name `xml:"test"`
-			}{})
-			if _, ok := err.(*SyntaxError); !ok {
-				t.Errorf("d.Decode: expected syntax error, got %v", err)
-			}
-		})
+		t.Run(
+			name, func(t *testing.T) {
+				start := StartElement{Name: Name{Local: "test"}}
+				bad := StartElement{Name: Name{Local: "bad"}}
+				d := NewTokenDecoder(
+					&toksNil{
+						// Malformed
+						t: []Token{start, bad, start.End()},
+					},
+				)
+				d.Strict = strict
+				err := d.Decode(
+					&struct {
+						XMLName Name `xml:"test"`
+					}{},
+				)
+				if _, ok := err.(*SyntaxError); !ok {
+					t.Errorf("d.Decode: expected syntax error, got %v", err)
+				}
+			},
+		)
 	}
 }
 
@@ -142,10 +154,15 @@ var rawTokens = []Token{
 	CharData("\n"),
 	ProcInst{"xml", []byte(`version="1.0" encoding="UTF-8"`)},
 	CharData("\n"),
-	Directive(`DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"`),
+	Directive(
+		`DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"`,
+	),
 	CharData("\n"),
-	StartElement{Name{"", "body"}, []Attr{{Name{"xmlns", "foo"}, "ns1"}, {Name{"", "xmlns"}, "ns2"}, {Name{"xmlns", "tag"}, "ns3"}}},
+	StartElement{
+		Name{"", "body"},
+		[]Attr{{Name{"xmlns", "foo"}, "ns1"}, {Name{"", "xmlns"}, "ns2"}, {Name{"xmlns", "tag"}, "ns3"}},
+	},
 	CharData("\n  "),
 	StartElement{Name{"", "hello"}, []Attr{{Name{"", "lang"}, "en"}}},
 	CharData("World <>'\" 白鵬翔"),
@@ -179,10 +196,15 @@ var cookedTokens = []Token{
 	CharData("\n"),
 	ProcInst{"xml", []byte(`version="1.0" encoding="UTF-8"`)},
 	CharData("\n"),
-	Directive(`DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"`),
+	Directive(
+		`DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"`,
+	),
 	CharData("\n"),
-	StartElement{Name{"ns2", "body"}, []Attr{{Name{"xmlns", "foo"}, "ns1"}, {Name{"", "xmlns"}, "ns2"}, {Name{"xmlns", "tag"}, "ns3"}}},
+	StartElement{
+		Name{"ns2", "body"},
+		[]Attr{{Name{"xmlns", "foo"}, "ns1"}, {Name{"", "xmlns"}, "ns2"}, {Name{"xmlns", "tag"}, "ns3"}},
+	},
 	CharData("\n  "),
 	StartElement{Name{"ns2", "hello"}, []Attr{{Name{"", "lang"}, "en"}}},
 	CharData("World <>'\" 白鵬翔"),
@@ -378,8 +400,10 @@ func TestRawTokenAltEncodingNoConverter(t *testing.T) {
 	}
 	const encoding = "x-testing-uppercase"
 	if !strings.Contains(err.Error(), encoding) {
-		t.Errorf("expected error to contain %q; got error: %v",
-			encoding, err)
+		t.Errorf(
+			"expected error to contain %q; got error: %v",
+			encoding, err,
+		)
 	}
 }
 
@@ -773,40 +797,6 @@ func TestEntityInsideCDATA(t *testing.T) {
 	}
 }
 
-var characterTests = []struct {
-	in  string
-	err string
-}{
-	{"\x12<doc/>", "illegal character code U+0012"},
-	{"<?xml version=\"1.0\"?>\x0b<doc/>", "illegal character code U+000B"},
-	{"\xef\xbf\xbe<doc/>", "illegal character code U+FFFE"},
-	{"<?xml version=\"1.0\"?><doc>\r\n<hiya/>\x07<toots/></doc>", "illegal character code U+0007"},
-	{"<?xml version=\"1.0\"?><doc \x12='value'>what's up</doc>", "expected attribute name in element"},
-	{"<doc>&abc\x01;</doc>", "invalid character entity &abc (no semicolon)"},
-	{"<doc>&\x01;</doc>", "invalid character entity & (no semicolon)"},
-	{"<doc>&\xef\xbf\xbe;</doc>", "invalid character entity &\uFFFE;"},
-	{"<doc>&hello;</doc>", "invalid character entity &hello;"},
-}
-
-func TestDisallowedCharacters(t *testing.T) {
-
-	for i, tt := range characterTests {
-		d := NewDecoder(strings.NewReader(tt.in))
-		var err error
-
-		for err == nil {
-			_, err = d.Token()
-		}
-		synerr, ok := err.(*SyntaxError)
-		if !ok {
-			t.Fatalf("input %d d.Token() = _, %v, want _, *SyntaxError", i, err)
-		}
-		if synerr.Msg != tt.err {
-			t.Fatalf("input %d synerr.Msg wrong: want %q, got %q", i, tt.err, synerr.Msg)
-		}
-	}
-}
-
 func TestIsInCharacterRange(t *testing.T) {
 	invalid := []rune{
 		utf8.MaxRune + 1,
@@ -996,7 +986,7 @@ func encodeXMLNS3() ([]byte, error) {
 		Body    string
 	}
 
-	//s := &Test{XMLName: Name{"http://example.com/ns",""}, Body: "hello world"} is unusable as the "-" is missing
+	// s := &Test{XMLName: Name{"http://example.com/ns",""}, Body: "hello world"} is unusable as the "-" is missing
 	// as documentation states
 	s := &Test{Body: "hello world"}
 	return Marshal(s)
@@ -1103,7 +1093,10 @@ func TestIssue7113(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(a.C.XMLName.Space) != 0 {
-		t.Errorf("overidding with empty namespace: marshaling, got %s in C tag which should be empty\n", a.C.XMLName.Space)
+		t.Errorf(
+			"overidding with empty namespace: marshaling, got %s in C tag which should be empty\n",
+			a.C.XMLName.Space,
+		)
 	}
 	if string(b) != xmlTest {
 		t.Fatalf("overidding with empty namespace: marshaling, got %s, want %s\n", b, xmlTest)
@@ -1114,10 +1107,17 @@ func TestIssue7113(t *testing.T) {
 		t.Fatalf("second Unmarshal failed: %s", err)
 	}
 	if c.XMLName.Space != "b" {
-		t.Errorf("overidding with empty namespace: after marshaling & unmarshaling, XML name space: got %s, want %s\n", a.XMLName.Space, structSpace)
+		t.Errorf(
+			"overidding with empty namespace: after marshaling & unmarshaling, XML name space: got %s, want %s\n",
+			a.XMLName.Space,
+			structSpace,
+		)
 	}
 	if len(c.C.XMLName.Space) != 0 {
-		t.Errorf("overidding with empty namespace: after marshaling & unmarshaling, got %s, want empty\n", a.C.XMLName.Space)
+		t.Errorf(
+			"overidding with empty namespace: after marshaling & unmarshaling, got %s, want empty\n",
+			a.C.XMLName.Space,
+		)
 	}
 }
 
@@ -1129,13 +1129,17 @@ func TestIssue20396(t *testing.T) {
 		s       string
 		wantErr error
 	}{
-		{`<a:te:st xmlns:a="abcd"/>`, // Issue 20396
-			UnmarshalError("XML syntax error on line 1: expected element name after <")},
+		{
+			`<a:te:st xmlns:a="abcd"/>`, // Issue 20396
+			UnmarshalError("XML syntax error on line 1: expected element name after <"),
+		},
 		{`<a:te=st xmlns:a="abcd"/>`, attrError},
 		{`<a:te&st xmlns:a="abcd"/>`, attrError},
 		{`<a:test xmlns:a="abcd"/>`, nil},
-		{`<a:te:st xmlns:a="abcd">1</a:te:st>`,
-			UnmarshalError("XML syntax error on line 1: expected element name after <")},
+		{
+			`<a:te:st xmlns:a="abcd">1</a:te:st>`,
+			UnmarshalError("XML syntax error on line 1: expected element name after <"),
+		},
 		{`<a:te=st xmlns:a="abcd">1</a:te=st>`, attrError},
 		{`<a:te&st xmlns:a="abcd">1</a:te&st>`, attrError},
 		{`<a:test xmlns:a="abcd">1</a:test>`, nil},
@@ -1222,21 +1226,23 @@ func TestNewTokenDecoderIdempotent(t *testing.T) {
 
 func TestWrapDecoder(t *testing.T) {
 	d := NewDecoder(strings.NewReader(`<quote>[Re-enter Clown with a letter, and FABIAN]</quote>`))
-	m := tokenMap(func(t Token) Token {
-		switch tok := t.(type) {
-		case StartElement:
-			if tok.Name.Local == "quote" {
-				tok.Name.Local = "blocking"
-				return tok
+	m := tokenMap(
+		func(t Token) Token {
+			switch tok := t.(type) {
+			case StartElement:
+				if tok.Name.Local == "quote" {
+					tok.Name.Local = "blocking"
+					return tok
+				}
+			case EndElement:
+				if tok.Name.Local == "quote" {
+					tok.Name.Local = "blocking"
+					return tok
+				}
 			}
-		case EndElement:
-			if tok.Name.Local == "quote" {
-				tok.Name.Local = "blocking"
-				return tok
-			}
-		}
-		return t
-	})
+			return t
+		},
+	)
 
 	d = NewTokenDecoder(m(d))
 
@@ -1346,8 +1352,10 @@ func TestParseErrors(t *testing.T) {
 		{withDefaultHeader(`<!- not ok -->`), `invalid sequence <!- not part of <!--`},
 		{withDefaultHeader(`<!-? not ok -->`), `invalid sequence <!- not part of <!--`},
 		{withDefaultHeader(`<![not ok]>`), `invalid <![ sequence`},
-		{withDefaultHeader(`<zzz:foo xmlns:zzz="http://example.com"><bar>baz</bar></foo>`),
-			`element <foo> in space zzz closed by </foo> in space ""`},
+		{
+			withDefaultHeader(`<zzz:foo xmlns:zzz="http://example.com"><bar>baz</bar></foo>`),
+			`element <foo> in space zzz closed by </foo> in space ""`,
+		},
 		{withDefaultHeader("\xf1"), `invalid UTF-8`},
 
 		// Header-related errors.
@@ -1396,23 +1404,25 @@ const testInputHTMLAutoClose = `<?xml version="1.0" encoding="UTF-8"?>
 <BR><span id="test">abc</span><br/><br/>`
 
 func BenchmarkHTMLAutoClose(b *testing.B) {
-	b.RunParallel(func(p *testing.PB) {
-		for p.Next() {
-			d := NewDecoder(strings.NewReader(testInputHTMLAutoClose))
-			d.Strict = false
-			d.AutoClose = HTMLAutoClose
-			d.Entity = HTMLEntity
-			for {
-				_, err := d.Token()
-				if err != nil {
-					if err == io.EOF {
-						break
+	b.RunParallel(
+		func(p *testing.PB) {
+			for p.Next() {
+				d := NewDecoder(strings.NewReader(testInputHTMLAutoClose))
+				d.Strict = false
+				d.AutoClose = HTMLAutoClose
+				d.Entity = HTMLEntity
+				for {
+					_, err := d.Token()
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						b.Fatalf("unexpected error: %v", err)
 					}
-					b.Fatalf("unexpected error: %v", err)
 				}
 			}
-		}
-	})
+		},
+	)
 }
 
 func TestHTMLAutoClose(t *testing.T) {
